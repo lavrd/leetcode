@@ -1,0 +1,2 @@
+[workspace]
+members = ["problems/n_125_valid_palindrome"]
