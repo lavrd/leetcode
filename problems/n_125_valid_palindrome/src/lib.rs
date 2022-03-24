@@ -45,7 +45,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_palindrome() {
+    fn it_works() -> Result<(), Box<dyn std::error::Error>> {
         let cases: Vec<(&str, bool)> = vec![
             // Positive.
             ("605 + 506", true),
@@ -60,7 +60,10 @@ mod tests {
             ("race a car", false)
         ];
         for case in cases {
-            assert_eq!(Solution::is_palindrome(case.0.to_string()), case.1)
+            if Solution::is_palindrome(case.0.to_string()) != case.1 {
+                return Err(format!("{} is not {}", case.0, case.1).into())
+            }
         }
+        Ok(())
     }
 }

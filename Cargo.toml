@@ -1,2 +1,2 @@
 [workspace]
-members = ["problems/n_125_valid_palindrome"]
+members = ["problems/n_125_valid_palindrome", "problems/n_9_palindrome_number"]

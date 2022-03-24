@@ -5,3 +5,7 @@ version = 3
 [[package]]
 name = "n_125_valid_palindrome"
 version = "0.1.0"
+
+[[package]]
+name = "n_9_palindrome_number"
+version = "0.1.0"
