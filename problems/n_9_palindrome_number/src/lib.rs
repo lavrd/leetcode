@@ -30,7 +30,6 @@ impl Solution {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,14 +41,18 @@ mod tests {
             (121, true),
             (2442, true),
             (999, true),
+            (12321, true),
+            (100001, true),
             // Negative.
             (-121, false),
             (123, false),
             (10, false),
+            (128721, false),
+            (127821, false),
         ];
         for case in cases {
             if Solution::is_palindrome(case.0) != case.1 {
-                return Err(format!("{} is not {}", case.0, case.1).into())
+                return Err(format!("{} is not {}", case.0, case.1).into());
             }
         }
         Ok(())

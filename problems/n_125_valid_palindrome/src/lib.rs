@@ -6,7 +6,7 @@ impl Solution {
     pub fn is_palindrome(str: String) -> bool {
         // Check constraints.
         if str.len() < 1 || str.len() > 2_i32.mul(10_i32.pow(5)) as usize {
-            return false
+            return false;
         }
 
         // Clean string.
@@ -57,11 +57,11 @@ mod tests {
             (" ", true),
             // Negative.
             ("Hello World!", false),
-            ("race a car", false)
+            ("race a car", false),
         ];
         for case in cases {
             if Solution::is_palindrome(case.0.to_string()) != case.1 {
-                return Err(format!("{} is not {}", case.0, case.1).into())
+                return Err(format!("{} is not {}", case.0, case.1).into());
             }
         }
         Ok(())
