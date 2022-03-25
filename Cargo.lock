@@ -7,6 +7,10 @@ name = "binary_search"
 version = "0.1.0"
 
 [[package]]
+name = "find_max_size_square_plots"
+version = "0.1.0"
+
+[[package]]
 name = "n_125_valid_palindrome"
 version = "0.1.0"
 

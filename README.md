@@ -1,14 +1,15 @@
 # leetcode
 
 ## Problems
- 
+
 [9. Palindrome Number](problems/n_9_palindrome_number)\
 [125. Valid Palindrome](problems/n_125_valid_palindrome)
 
 ## Algorithms
 
 [Binary Search](algorithms/binary_search)\
-[Selection Sort](algorithms/selection_sort)
+[Selection Sort](algorithms/selection_sort)\
+[Find Max Size Squire Plots](algorithms/find_max_size_square_plots)
 
 ## Usage
 
