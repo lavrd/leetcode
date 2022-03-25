@@ -21,22 +21,17 @@ fn binary_search(v: Vec<u128>, target: u128) -> Option<usize> {
     None
 }
 
+fn binary_search_recursive(v: Vec<u128>, target: u128) -> Option<usize> {
+    None
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{binary_search, gen_v};
+    use crate::{binary_search, binary_search_recursive, gen_cases, gen_v};
 
     #[test]
-    fn it_works() -> Result<(), Box<dyn std::error::Error>> {
-        let cases: Vec<(Vec<u128>, u128, Option<usize>)> = vec![
-            (gen_v(12), 10, Some(9)),
-            (gen_v(100), 54, Some(53)),
-            (gen_v(256), 54, Some(53)),
-            (gen_v(256), 555, None),
-            (gen_v(3), 0, None),
-            (gen_v(256), 0, None),
-            (gen_v(256), 257, None),
-            (gen_v(256), 255, Some(254)),
-        ];
+    fn test_binary_search() -> Result<(), Box<dyn std::error::Error>> {
+        let cases = gen_cases();
         for case in cases {
             let keep = case.clone();
             let res_index = binary_search(case.0, case.1);
@@ -46,6 +41,32 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn test_binary_search_recursive() -> Result<(), Box<dyn std::error::Error>> {
+        let cases = gen_cases();
+        for case in cases {
+            // let keep = case.clone();
+            // let res_index = binary_search_recursive(case.0, case.1);
+            // if res_index != case.2 {
+            //     return Err(format!("{:?} -> {:?}", keep, res_index).to_string().into());
+            // }
+        }
+        Ok(())
+    }
+}
+
+fn gen_cases() -> Vec<(Vec<u128>, u128, Option<usize>)> {
+    vec![
+        (gen_v(12), 10, Some(9)),
+        (gen_v(100), 54, Some(53)),
+        (gen_v(256), 54, Some(53)),
+        (gen_v(256), 555, None),
+        (gen_v(3), 0, None),
+        (gen_v(256), 0, None),
+        (gen_v(256), 257, None),
+        (gen_v(256), 255, Some(254)),
+    ]
 }
 
 fn gen_v(size: usize) -> Vec<u128> {

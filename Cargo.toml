@@ -1,5 +1,8 @@
 [workspace]
 members = [
+  # Algorithms.
   "algorithms/binary_search", "algorithms/selection_sort", "algorithms/find_max_size_square_plots",
+  "algorithms/sum_array",
+  # Problems.
   "problems/n_125_valid_palindrome", "problems/n_9_palindrome_number",
 ]

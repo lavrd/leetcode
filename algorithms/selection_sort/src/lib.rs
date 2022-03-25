@@ -33,6 +33,7 @@ fn find_extremum(v: Vec<Type>, asc: bool) -> usize {
 mod tests {
     use crate::{selection_sort, Type};
 
+    #[test]
     fn it_works() -> Result<(), Box<dyn std::error::Error>> {
         let cases: Vec<(Vec<Type>, Vec<Type>, bool)> = vec![
             (vec![], vec![], true),
