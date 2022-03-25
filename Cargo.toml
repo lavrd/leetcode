@@ -1,5 +1,5 @@
 [workspace]
 members = [
-  "algorithms/binary_search",
+  "algorithms/binary_search", "algorithms/selection_sort",
   "problems/n_125_valid_palindrome", "problems/n_9_palindrome_number",
 ]

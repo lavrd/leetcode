@@ -13,3 +13,7 @@ version = "0.1.0"
 [[package]]
 name = "n_9_palindrome_number"
 version = "0.1.0"
+
+[[package]]
+name = "selection_sort"
+version = "0.1.0"

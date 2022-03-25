@@ -7,7 +7,8 @@
 
 ## Algorithms
 
-[Binary Search](algorithms/binary_search)
+[Binary Search](algorithms/binary_search)\
+[Selection Sort](algorithms/selection_sort)
 
 ## Usage
 
