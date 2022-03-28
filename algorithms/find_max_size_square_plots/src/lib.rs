@@ -1,9 +1,4 @@
 fn find(height: u128, width: u128) -> u128 {
-    // We found
-    if height == width * 2 {
-        return width;
-    }
-
     // First number in tuple is bigger than second.
     let measurements: (u128, u128) = if height > width {
         (height, width)
@@ -14,8 +9,9 @@ fn find(height: u128, width: u128) -> u128 {
     // Find left space.
     let left_space = measurements.0 % measurements.1;
 
+    // We found.
     if left_space == 0 {
-        return width;
+        return measurements.1;
     }
 
     // Try to find smaller plots in left space.

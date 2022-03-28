@@ -21,6 +21,7 @@ fn binary_search(v: Vec<u128>, target: u128) -> Option<usize> {
     None
 }
 
+// TODO: We need to pass to this function find interval and work with it to find index.
 fn binary_search_recursive(v: Vec<u128>, target: u128) -> Option<usize> {
     let mut mid: usize = 0;
     if v.len() > 1 {
