@@ -21,20 +21,19 @@ fn binary_search(v: Vec<u128>, target: u128) -> Option<usize> {
     None
 }
 
-// TODO: We need to pass to this function find interval and work with it to find index.
-fn binary_search_recursive(v: Vec<u128>, target: u128) -> Option<usize> {
+fn binary_search_recursive(v: Vec<u128>, target: u128, start: usize, stop: usize) -> Option<usize> {
     let mut mid: usize = 0;
     if v.len() > 1 {
-        mid = (v.len() - 1) / 2;
+        mid = stop.checked_sub(start)?.checked_div(2)? + start
     }
     if v[mid] == target {
         return Some(mid);
     }
     if v[mid] < target {
-        return binary_search_recursive(v[mid + 1..].to_vec(), target);
+        return binary_search_recursive(v, target, mid + 1, stop);
     }
     if v[mid] > target {
-        return binary_search_recursive(v[..mid - 1].to_vec(), target);
+        return binary_search_recursive(v.to_vec(), target, start, mid.checked_sub(1)?);
     }
     None
 }
@@ -56,18 +55,19 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_binary_search_recursive() -> Result<(), Box<dyn std::error::Error>> {
-    //     let cases = gen_cases();
-    //     for case in cases {
-    //         let keep = case.clone();
-    //         let res_index = binary_search_recursive(case.0, case.1);
-    //         if res_index != case.2 {
-    //             return Err(format!("{:?} -> {:?}", keep, res_index).to_string().into());
-    //         }
-    //     }
-    //     Ok(())
-    // }
+    #[test]
+    fn test_binary_search_recursive() -> Result<(), Box<dyn std::error::Error>> {
+        let cases = gen_cases();
+        for case in cases {
+            let keep = case.clone();
+            let length = case.0.len();
+            let res_index = binary_search_recursive(case.0, case.1, 0, length - 1);
+            if res_index != case.2 {
+                return Err(format!("{:?} -> {:?}", keep, res_index).to_string().into());
+            }
+        }
+        Ok(())
+    }
 
     fn gen_cases() -> Vec<(Vec<u128>, u128, Option<usize>)> {
         vec![
