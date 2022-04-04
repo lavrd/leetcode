@@ -8,10 +8,11 @@
 ## Algorithms
 
 [QuickSort](algorithms/quicksort)\
+[Hash Table](algorithms/hash_table)\
 [Binary Search](algorithms/binary_search)\
 [Selection Sort](algorithms/selection_sort)\
 [Find Max Size Squire Plots](algorithms/find_max_size_square_plots)\
-[Sum Array Recursive](algorithms/sum_array_recursive)
+[Sum Array](algorithms/sum_array)
 
 ## Usage
 
