@@ -1,3 +1,7 @@
+// TODO: Add resize logic to avoid high load factor.
+// TODO: Add hash table iterator.
+// TODO: Try sha256 as a hash function.
+
 const SIZE: usize = 10;
 
 type HashFn = Box<dyn Fn(&str) -> usize>;
@@ -21,28 +25,36 @@ impl Value {
 
 struct HashTable {
     hash_fn: HashFn,
-    table: Vec<Vec<Value>>,
+    buckets: Vec<Vec<Value>>,
 }
 
 impl HashTable {
     fn new(hash_fn: HashFn) -> Self {
-        let mut table: Vec<Vec<Value>> = Vec::with_capacity(SIZE);
+        let mut buckets: Vec<Vec<Value>> = Vec::with_capacity(SIZE);
         for _ in 0..SIZE {
-            table.push(vec![]);
+            buckets.push(vec![]);
         }
-        HashTable { hash_fn, table }
+        HashTable { hash_fn, buckets }
     }
 
     fn insert(&mut self, key: &str, data: DataType) {
         let hash: usize = (self.hash_fn)(key);
-        let values = self.table.get_mut(hash).unwrap();
-        values.push(Value::new(key, data))
+        let bucket = self.buckets.get_mut(hash).unwrap();
+        if !bucket.is_empty() {
+            for val in bucket.iter_mut() {
+                if val.key == key {
+                    val.data = data;
+                    return;
+                }
+            }
+        }
+        bucket.push(Value::new(key, data));
     }
 
     fn get(&self, key: &str) -> Option<DataType> {
         let hash: usize = (self.hash_fn)(key);
-        let values = self.table.get(hash).unwrap();
-        for val in values {
+        let bucket = self.buckets.get(hash).unwrap();
+        for val in bucket {
             if val.key == key {
                 return Some(val.data);
             }
@@ -52,10 +64,10 @@ impl HashTable {
 
     fn delete(&mut self, key: &str) {
         let hash: usize = (self.hash_fn)(key);
-        let values = self.table.get_mut(hash).unwrap();
-        for (i, val) in values.iter().enumerate() {
+        let bucket = self.buckets.get_mut(hash).unwrap();
+        for (i, val) in bucket.iter().enumerate() {
             if val.key == key {
-                values.remove(i);
+                bucket.remove(i);
                 return;
             }
         }
@@ -63,8 +75,8 @@ impl HashTable {
 
     fn load_factor(&self) -> f64 {
         let mut non_empty: u64 = 0;
-        for values in &self.table {
-            if !values.is_empty() {
+        for bucket in &self.buckets {
+            if !bucket.is_empty() {
                 non_empty += 1;
             }
         }
@@ -73,7 +85,7 @@ impl HashTable {
     }
 }
 
-fn mod_ver1(data: &str) -> usize {
+fn hash_fn_mod(data: &str) -> usize {
     let mut sum: usize = 0;
     for byte in data.as_bytes() {
         sum += *byte as usize;
@@ -89,11 +101,11 @@ mod tests {
     fn test_mod_ver1() {
         // 6 if SIZE is 10;
         // 106 if SIZE is 255;
-        assert_eq!(mod_ver1("hello#1"), 6);
-        assert_eq!(mod_ver1("#1holle"), 6);
-        assert_eq!(mod_ver1("h#ell1o"), 6);
+        assert_eq!(hash_fn_mod("hello#1"), 6);
+        assert_eq!(hash_fn_mod("#1holle"), 6);
+        assert_eq!(hash_fn_mod("h#ell1o"), 6);
 
-        let mut hash_table: HashTable = HashTable::new(Box::new(mod_ver1));
+        let mut hash_table: HashTable = HashTable::new(Box::new(hash_fn_mod));
 
         hash_table.insert("h1", "w1");
         hash_table.insert("1h", "1w");
@@ -114,8 +126,13 @@ mod tests {
         assert_eq!(hash_table.get("h1"), None);
         assert_eq!(hash_table.load_factor(), 0.1f64);
 
+        hash_table.insert("jer_1", "lor_2");
+        assert_eq!(hash_table.get("jer_1"), Some("lor_2"));
+        hash_table.insert("jer_1", "lor_009");
+        assert_eq!(hash_table.get("jer_1"), Some("lor_009"));
+
         assert_eq!(
-            (hash_table.table.len(), hash_table.table.capacity()),
+            (hash_table.buckets.len(), hash_table.buckets.capacity()),
             (10, 10)
         );
     }

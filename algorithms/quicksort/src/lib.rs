@@ -21,7 +21,8 @@ fn quicksort(mut v: Vec<u128>, asc: bool, partition: Partition) -> Vec<u128> {
 }
 
 fn hoare_partition(v: &mut Vec<u128>, start: usize, stop: usize, _asc: bool) -> usize {
-    let pivot = v[start];
+    let mid = (start + stop) / 2;
+    let pivot = v[mid];
     let mut i = start.checked_sub(1);
     let mut j = stop + 1;
     loop {
@@ -200,12 +201,12 @@ mod tests {
 
     fn gen_cases() -> Vec<(Vec<u128>, Vec<u128>, bool)> {
         vec![
-            (vec![4, 2, 0, 9, 2], vec![0, 2, 2, 4, 9], true),
-            // (
-            //     vec![55, 8, 12, 34, 5, 7, 122, 34, 0],
-            //     vec![0, 5, 7, 8, 12, 34, 34, 55, 122],
-            //     true,
-            // ),
+            // (vec![4, 2, 0, 9, 2], vec![0, 2, 2, 4, 9], true),
+            (
+                vec![55, 8, 12, 34, 5, 7, 122, 34, 0],
+                vec![0, 5, 7, 8, 12, 34, 34, 55, 122],
+                true,
+            ),
             // (
             //     vec![55, 8, 12, 5, 7, 122, 34, 0],
             //     vec![122, 55, 34, 12, 8, 7, 5, 0],
