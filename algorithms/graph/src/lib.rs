@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 type NodeName = &'static str;
 type Distance = u8;
-type Link<T> = Rc<RefCell<Node<T>>>; // TODO: Why RC? Why RefCell?
+type Link<T> = Rc<RefCell<Node<T>>>; // TODO: Why Rc? Why RefCell?
 type Edge<T> = (Link<T>, Distance);
 
 // Traverse step result.
@@ -87,14 +87,17 @@ where
 }
 
 // TODO: How to calculate result for one path?
-fn breadth_first_search<T>(root: Link<u8>, target: NodeName) -> u16 {
+fn breadth_first_search<T>(root: Link<T>, target: T) -> u16
+where
+    T: Clone + Eq,
+{
     // TODO: Why just RefCell?
     let distance: RefCell<u16> = RefCell::new(0);
     root.borrow().traverse_by_level(
         &|edge| -> StepResult {
             println!("{:?}", edge.0.borrow().name);
             *distance.borrow_mut() += edge.1 as u16;
-            if edge.0.borrow().name == target {
+            if edge.0.borrow().data == target {
                 return StepResult::Stop;
             }
             StepResult::Ok
@@ -126,18 +129,18 @@ mod tests {
             &mut HashSet::new(),
         );
 
-        assert_eq!(breadth_first_search::<u8>(root, "G"), 4);
+        assert_eq!(breadth_first_search::<u8>(root, 7), 4);
     }
 
     fn gen_graph() -> Link<u8> {
         let r = Node::new("R", 0);
-        let a = Node::new("A", 0);
-        let b = Node::new("B", 0);
-        let c = Node::new("C", 0);
-        let d = Node::new("D", 0);
-        let e = Node::new("E", 0);
-        let f = Node::new("F", 0);
-        let g = Node::new("G", 0);
+        let a = Node::new("A", 1);
+        let b = Node::new("B", 2);
+        let c = Node::new("C", 3);
+        let d = Node::new("D", 4);
+        let e = Node::new("E", 5);
+        let f = Node::new("F", 6);
+        let g = Node::new("G", 7);
 
         r.borrow_mut().add_edge(a.clone(), 1).add_edge(b.clone(), 9);
         a.borrow_mut().add_edge(c.clone(), 6).add_edge(g.clone(), 3);
