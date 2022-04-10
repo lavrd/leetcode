@@ -8,6 +8,8 @@
 ## Algorithms
 
 [QuickSort](algorithms/quicksort)\
+[Graph](algorithms/graph)\
+[Queue](algorithms/queue)\
 [Hash Table](algorithms/hash_table)\
 [Binary Search](algorithms/binary_search)\
 [Selection Sort](algorithms/selection_sort)\
