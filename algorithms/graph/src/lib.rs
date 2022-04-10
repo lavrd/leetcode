@@ -1,17 +1,29 @@
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::rc::Rc;
 
-type T = &'static str;
+type NodeName = &'static str;
+type Distance = u8;
+type Link<T> = Rc<RefCell<Node<T>>>; // TODO: Why RC? Why RefCell?
+type Edge<T> = (Link<T>, Distance);
 
-struct Node {
-    name: T,
-    data: T,
-    edges: Vec<Rc<RefCell<Node>>>, // TODO: Why RC? Why RefCell?
+// Traverse step result.
+enum StepResult {
+    Ok,
+    Stop,
 }
 
-impl Node {
-    fn new(name: T, data: T) -> Rc<RefCell<Self>> {
+struct Node<T> {
+    name: NodeName,
+    data: T,
+    edges: Vec<Edge<T>>,
+}
+
+impl<T> Node<T>
+where
+    T: Clone,
+{
+    fn new(name: NodeName, data: T) -> Link<T> {
         Rc::new(RefCell::new(Node {
             name,
             data,
@@ -19,27 +31,79 @@ impl Node {
         }))
     }
 
-    fn add_edge(&mut self, node: Rc<RefCell<Node>>) -> &mut Self {
-        self.edges.push(node);
+    fn add_edge(&mut self, node: Link<T>, distance: Distance) -> &mut Self {
+        self.edges.push((node, distance));
         self
     }
 
-    fn traverse(&self, seen: &mut HashSet<T>) {
+    fn traverse<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
+    where
+        F: Fn(&Node<T>),
+    {
         if seen.contains(&self.name) {
             return;
         }
-        print!("{}\n", self.name);
-        for edge in &self.edges {
-            print!(" -> {}\n", edge.borrow().name)
-        }
+        act(self);
         seen.insert(self.name);
         for edge in &self.edges {
-            edge.borrow().traverse(seen);
+            edge.0.borrow().traverse(act, seen);
+        }
+    }
+
+    fn traverse_by_level<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
+    where
+        F: Fn(&Edge<T>) -> StepResult,
+    {
+        let mut queue: VecDeque<Edge<T>> = VecDeque::new();
+        queue.push_back((Rc::new(RefCell::new(self.into())), 0));
+        while let Some(edge) = queue.pop_front() {
+            let node = edge.0.borrow();
+            if seen.contains(&node.name) {
+                continue;
+            }
+            let tsr = act(&edge);
+            match tsr {
+                StepResult::Stop => return,
+                _ => (),
+            }
+            seen.insert(&node.name);
+            for edge in &node.edges {
+                queue.push_back(edge.clone())
+            }
         }
     }
 }
 
-fn breadth_first_search() {}
+impl<T> From<&Node<T>> for Node<T>
+where
+    T: Clone,
+{
+    fn from(n: &Node<T>) -> Self {
+        let name = n.name.clone();
+        let data = n.data.clone();
+        let edges = n.edges.clone();
+        Self { name, data, edges }
+    }
+}
+
+// TODO: How to calculate result for one path?
+fn breadth_first_search<T>(root: Link<u8>, target: NodeName) -> u16 {
+    // TODO: Why just RefCell?
+    let distance: RefCell<u16> = RefCell::new(0);
+    root.borrow().traverse_by_level(
+        &|edge| -> StepResult {
+            println!("{:?}", edge.0.borrow().name);
+            *distance.borrow_mut() += edge.1 as u16;
+            if edge.0.borrow().name == target {
+                return StepResult::Stop;
+            }
+            StepResult::Ok
+        },
+        &mut HashSet::new(),
+    );
+    let d: u16 = distance.borrow().clone();
+    d
+}
 
 #[cfg(test)]
 mod tests {
@@ -48,25 +112,39 @@ mod tests {
     #[test]
     fn it_works() {
         let root = gen_graph();
-        root.borrow().traverse(&mut HashSet::new());
+        root.borrow().traverse(
+            &|node| {
+                println!("{}", node.name);
+                if node.edges.is_empty() {
+                    println!(" -> ()");
+                    return;
+                }
+                for edge in &node.edges {
+                    print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
+                }
+            },
+            &mut HashSet::new(),
+        );
+
+        assert_eq!(breadth_first_search::<u8>(root, "G"), 4);
     }
 
-    fn gen_graph() -> Rc<RefCell<Node>> {
-        let r = Node::new("R", "");
-        let a = Node::new("A", "");
-        let b = Node::new("B", "");
-        let c = Node::new("C", "");
-        let d = Node::new("D", "");
-        let e = Node::new("E", "");
-        let f = Node::new("F", "");
-        let g = Node::new("G", "");
+    fn gen_graph() -> Link<u8> {
+        let r = Node::new("R", 0);
+        let a = Node::new("A", 0);
+        let b = Node::new("B", 0);
+        let c = Node::new("C", 0);
+        let d = Node::new("D", 0);
+        let e = Node::new("E", 0);
+        let f = Node::new("F", 0);
+        let g = Node::new("G", 0);
 
-        r.borrow_mut().add_edge(a.clone()).add_edge(b.clone());
-        a.borrow_mut().add_edge(c.clone()).add_edge(g.clone());
-        b.borrow_mut().add_edge(d.clone()).add_edge(e.clone());
-        c.borrow_mut().add_edge(d.clone());
-        e.borrow_mut().add_edge(f.clone());
-        f.borrow_mut().add_edge(a.clone()).add_edge(g.clone());
+        r.borrow_mut().add_edge(a.clone(), 1).add_edge(b.clone(), 9);
+        a.borrow_mut().add_edge(c.clone(), 6).add_edge(g.clone(), 3);
+        b.borrow_mut().add_edge(d.clone(), 2).add_edge(e.clone(), 5);
+        c.borrow_mut().add_edge(d.clone(), 7);
+        e.borrow_mut().add_edge(f.clone(), 8);
+        f.borrow_mut().add_edge(a.clone(), 0).add_edge(g.clone(), 4);
 
         r
     }
