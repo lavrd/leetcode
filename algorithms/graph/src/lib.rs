@@ -4,11 +4,11 @@ use std::rc::Rc;
 
 type NodeName = &'static str;
 type Distance = u8;
-type Link<T> = Rc<RefCell<Node<T>>>; // TODO: Why Rc? Why RefCell?
+type Link<T> = Rc<RefCell<Node<T>>>;
 type Edge<T> = (Link<T>, Distance);
 
-// Traverse step result.
-enum StepResult {
+// Traverse act result.
+enum ActResult {
     Ok,
     Stop,
 }
@@ -36,7 +36,7 @@ where
         self
     }
 
-    fn traverse<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
+    fn traverse_breadth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
     where
         F: Fn(&Node<T>),
     {
@@ -46,13 +46,13 @@ where
         act(self);
         seen.insert(self.name);
         for edge in &self.edges {
-            edge.0.borrow().traverse(act, seen);
+            edge.0.borrow().traverse_breadth_first(act, seen);
         }
     }
 
     fn traverse_by_level<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
     where
-        F: Fn(&Edge<T>) -> StepResult,
+        F: Fn(&Edge<T>) -> ActResult,
     {
         let mut queue: VecDeque<Edge<T>> = VecDeque::new();
         queue.push_back((Rc::new(RefCell::new(self.into())), 0));
@@ -61,9 +61,9 @@ where
             if seen.contains(&node.name) {
                 continue;
             }
-            let tsr = act(&edge);
-            match tsr {
-                StepResult::Stop => return,
+            let res = act(&edge);
+            match res {
+                ActResult::Stop => return,
                 _ => (),
             }
             seen.insert(&node.name);
@@ -86,26 +86,22 @@ where
     }
 }
 
-// TODO: How to calculate result for one path?
-fn breadth_first_search<T>(root: Link<T>, target: T) -> u16
+fn breadth_first_search<T>(root: Link<T>, target: &str) -> Option<T>
 where
     T: Clone + Eq,
 {
-    // TODO: Why just RefCell?
-    let distance: RefCell<u16> = RefCell::new(0);
+    let found: RefCell<Option<T>> = RefCell::new(None);
     root.borrow().traverse_by_level(
-        &|edge| -> StepResult {
-            println!("{:?}", edge.0.borrow().name);
-            *distance.borrow_mut() += edge.1 as u16;
-            if edge.0.borrow().data == target {
-                return StepResult::Stop;
+        &|edge| -> ActResult {
+            if edge.0.borrow().name == target {
+                *found.borrow_mut() = Some(edge.0.borrow().data.clone());
+                return ActResult::Stop;
             }
-            StepResult::Ok
+            ActResult::Ok
         },
         &mut HashSet::new(),
     );
-    let d: u16 = distance.borrow().clone();
-    d
+    found.take()
 }
 
 #[cfg(test)]
@@ -115,7 +111,7 @@ mod tests {
     #[test]
     fn it_works() {
         let root = gen_graph();
-        root.borrow().traverse(
+        root.borrow().traverse_breadth_first(
             &|node| {
                 println!("{}", node.name);
                 if node.edges.is_empty() {
@@ -129,7 +125,8 @@ mod tests {
             &mut HashSet::new(),
         );
 
-        assert_eq!(breadth_first_search::<u8>(root, 7), 4);
+        assert_eq!(breadth_first_search::<u8>(root.clone(), "Press F"), None);
+        assert_eq!(breadth_first_search::<u8>(root, "F"), Some(6));
     }
 
     fn gen_graph() -> Link<u8> {
