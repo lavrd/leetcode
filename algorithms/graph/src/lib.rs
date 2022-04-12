@@ -125,8 +125,8 @@ mod tests {
             &mut HashSet::new(),
         );
 
-        assert_eq!(breadth_first_search::<u8>(root.clone(), "Press F"), None);
-        assert_eq!(breadth_first_search::<u8>(root, "F"), Some(6));
+        assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "Press F"), None);
+        assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "F"), Some(6));
     }
 
     fn gen_graph() -> Link<u8> {
@@ -139,12 +139,12 @@ mod tests {
         let f = Node::new("F", 6);
         let g = Node::new("G", 7);
 
-        r.borrow_mut().add_edge(a.clone(), 1).add_edge(b.clone(), 9);
-        a.borrow_mut().add_edge(c.clone(), 6).add_edge(g.clone(), 3);
-        b.borrow_mut().add_edge(d.clone(), 2).add_edge(e.clone(), 5);
-        c.borrow_mut().add_edge(d.clone(), 7);
-        e.borrow_mut().add_edge(f.clone(), 8);
-        f.borrow_mut().add_edge(a.clone(), 0).add_edge(g.clone(), 4);
+        r.borrow_mut().add_edge(Rc::clone(&a), 1).add_edge(Rc::clone(&b), 9);
+        a.borrow_mut().add_edge(Rc::clone(&c), 6).add_edge(Rc::clone(&g), 3);
+        b.borrow_mut().add_edge(Rc::clone(&d), 2).add_edge(Rc::clone(&e), 5);
+        c.borrow_mut().add_edge(Rc::clone(&d), 7);
+        e.borrow_mut().add_edge(Rc::clone(&f), 8);
+        f.borrow_mut().add_edge(Rc::clone(&a), 0).add_edge(Rc::clone(&g), 4);
 
         r
     }
