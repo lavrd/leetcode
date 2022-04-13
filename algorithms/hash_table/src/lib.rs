@@ -1,7 +1,3 @@
-// TODO: Add resize logic to avoid high load factor.
-// TODO: Add hash table iterator.
-// TODO: Try sha256 as a hash function.
-
 const SIZE: usize = 10;
 
 type HashFn = Box<dyn Fn(&str) -> usize>;

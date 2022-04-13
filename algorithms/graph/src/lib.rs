@@ -36,7 +36,7 @@ where
         self
     }
 
-    fn traverse_breadth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
+    fn traverse_depth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
     where
         F: Fn(&Node<T>),
     {
@@ -46,17 +46,17 @@ where
         act(self);
         seen.insert(self.name);
         for edge in &self.edges {
-            edge.0.borrow().traverse_breadth_first(act, seen);
+            edge.0.borrow().traverse_depth_first(act, seen);
         }
     }
 
-    fn traverse_by_level<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
+    fn traverse_breadth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
     where
         F: Fn(&Edge<T>) -> ActResult,
     {
-        let mut queue: VecDeque<Edge<T>> = VecDeque::new();
-        queue.push_back((Rc::new(RefCell::new(self.into())), 0));
-        while let Some(edge) = queue.pop_front() {
+        let mut stack: VecDeque<Edge<T>> = VecDeque::new();
+        stack.push_back((Rc::new(RefCell::new(self.into())), 0));
+        while let Some(edge) = stack.pop_front() {
             let node = edge.0.borrow();
             if seen.contains(&node.name) {
                 continue;
@@ -68,7 +68,7 @@ where
             }
             seen.insert(&node.name);
             for edge in &node.edges {
-                queue.push_back(edge.clone())
+                stack.push_back(edge.clone())
             }
         }
     }
@@ -91,7 +91,7 @@ where
     T: Clone + Eq,
 {
     let found: RefCell<Option<T>> = RefCell::new(None);
-    root.borrow().traverse_by_level(
+    root.borrow().traverse_breadth_first(
         &|edge| -> ActResult {
             if edge.0.borrow().name == target {
                 *found.borrow_mut() = Some(edge.0.borrow().data.clone());
@@ -104,27 +104,51 @@ where
     found.take()
 }
 
+fn print_node<T>(node: &Node<T>) {
+    println!("{}", node.name);
+    if node.edges.is_empty() {
+        println!(" -> ()");
+        return;
+    }
+    for edge in &node.edges {
+        print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
+    }
+}
+
+fn print_edge<T>(edge: &Edge<T>) -> ActResult {
+    let node = edge.0.borrow();
+    println!("{}", node.name);
+    if node.edges.is_empty() {
+        println!(" -> ()");
+        return ActResult::Ok;
+    }
+    for edge in &node.edges {
+        print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
+    }
+    ActResult::Ok
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
 
     #[test]
-    fn it_works() {
+    fn test_depth_first_traverse() {
         let root = gen_graph();
-        root.borrow().traverse_breadth_first(
-            &|node| {
-                println!("{}", node.name);
-                if node.edges.is_empty() {
-                    println!(" -> ()");
-                    return;
-                }
-                for edge in &node.edges {
-                    print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
-                }
-            },
-            &mut HashSet::new(),
-        );
+        print!("\n\n Depth First Traverse\n");
+        root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
+    }
 
+    #[test]
+    fn test_breadth_first_traverse() {
+        let root = gen_graph();
+        print!("\n\n Breadth First Traverse\n");
+        root.borrow().traverse_breadth_first(&print_edge, &mut HashSet::new());
+    }
+
+    #[test]
+    fn test_breadth_first_search() {
+        let root = gen_graph();
         assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "Press F"), None);
         assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "F"), Some(6));
     }
