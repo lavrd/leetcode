@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 type NodeName = &'static str;
@@ -62,11 +62,10 @@ where
                 continue;
             }
             let res = act(&edge);
-            match res {
-                ActResult::Stop => return,
-                _ => (),
-            }
-            seen.insert(&node.name);
+            if let ActResult::Stop = res {
+                return;
+            };
+            seen.insert(node.name);
             for edge in &node.edges {
                 stack.push_back(edge.clone())
             }
@@ -79,7 +78,7 @@ where
     T: Clone,
 {
     fn from(n: &Node<T>) -> Self {
-        let name = n.name.clone();
+        let name = n.name;
         let data = n.data.clone();
         let edges = n.edges.clone();
         Self { name, data, edges }
@@ -111,7 +110,7 @@ fn print_node<T>(node: &Node<T>) {
         return;
     }
     for edge in &node.edges {
-        print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
+        println!(" -> {} ({})", edge.0.borrow().name, edge.1)
     }
 }
 
@@ -123,9 +122,65 @@ fn print_edge<T>(edge: &Edge<T>) -> ActResult {
         return ActResult::Ok;
     }
     for edge in &node.edges {
-        print!(" -> {} ({})\n", edge.0.borrow().name, edge.1)
+        println!(" -> {} ({})", edge.0.borrow().name, edge.1)
     }
     ActResult::Ok
+}
+
+fn depth_first_topological_sort<T>(root: Link<T>) -> VecDeque<Link<T>>
+where
+    T: Clone,
+{
+    // false - marked as temporary / true - marked as permanent.
+    let marked: &mut HashMap<&'static str, (Link<T>, bool)> = &mut HashMap::new();
+    // Sorted nodes.
+    let sorted: &mut VecDeque<Link<T>> = &mut VecDeque::new();
+
+    visit(root, marked, sorted);
+    loop {
+        // Get temporary marked node.
+        let node: Option<Link<T>> = marked.iter().find_map(|(_, node)| {
+            if !node.1 {
+                return Some(node.0.clone());
+            }
+            None
+        });
+        // If there aren't any temporary nodes -> stop it.
+        if node.is_none() {
+            break;
+        }
+        // Visit next temporary node.
+        visit(node.unwrap(), marked, sorted)
+    }
+    sorted.clone()
+}
+
+fn visit<T>(
+    node: Link<T>,
+    marked: &mut HashMap<&'static str, (Link<T>, bool)>,
+    sorted: &mut VecDeque<Link<T>>,
+) {
+    let marked_node: Option<&(Link<T>, bool)> = marked.get(node.borrow().name);
+    // If node is already marked.
+    if let Some(node) = marked_node {
+        // If node marked as permanent.
+        if node.1 {
+            // Stop it.
+            return;
+        }
+        // If node already marked as temporary -> not a DAG; cycle.
+        panic!("not a DAG")
+    }
+    // Mark node as temporary.
+    marked.insert(node.borrow().name, (node.clone(), false));
+    for edge in &node.borrow().edges {
+        // Visit neighbors.
+        visit(edge.0.clone(), marked, sorted)
+    }
+    // Mark node as permanent.
+    marked.insert(node.borrow().name, (node.clone(), true));
+    // Add node as sorted node.
+    sorted.push_front(node);
 }
 
 #[cfg(test)]
@@ -151,6 +206,22 @@ mod tests {
         let root = gen_graph();
         assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "Press F"), None);
         assert_eq!(breadth_first_search::<u8>(Rc::clone(&root), "F"), Some(6));
+    }
+
+    #[test]
+    fn test_breadth_first_topology_sort() {
+        let root = gen_graph();
+        println!("traverse");
+        root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
+        let sorted = depth_first_topological_sort(root);
+        println!("sorted");
+        let mut nodes: Vec<&'static str> = Vec::new();
+        for ele in sorted {
+            nodes.push(ele.borrow().name);
+            print!("{} ", ele.borrow().name)
+        }
+        println!();
+        assert_eq!(nodes, vec!["R", "B", "E", "F", "A", "G", "C", "D"])
     }
 
     fn gen_graph() -> Link<u8> {
