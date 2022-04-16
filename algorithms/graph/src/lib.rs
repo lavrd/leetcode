@@ -3,9 +3,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 type NodeName = &'static str;
-type Distance = u8;
+type Weight = u8;
 type Link<T> = Rc<RefCell<Node<T>>>;
-type Edge<T> = (Link<T>, Distance);
+type Edge<T> = (Link<T>, Weight);
 
 // Traverse act result.
 enum ActResult {
@@ -31,8 +31,8 @@ where
         }))
     }
 
-    fn add_edge(&mut self, node: Link<T>, distance: Distance) -> &mut Self {
-        self.edges.push((node, distance));
+    fn add_edge(&mut self, node: Link<T>, weight: Weight) -> &mut Self {
+        self.edges.push((node, weight));
         self
     }
 
@@ -127,12 +127,9 @@ fn print_edge<T>(edge: &Edge<T>) -> ActResult {
     ActResult::Ok
 }
 
-fn depth_first_topological_sort<T>(root: Link<T>) -> VecDeque<Link<T>>
-where
-    T: Clone,
-{
+fn depth_first_topological_sort<T>(root: Link<T>) -> VecDeque<Link<T>> {
     // false - marked as temporary / true - marked as permanent.
-    let marked: &mut HashMap<&'static str, (Link<T>, bool)> = &mut HashMap::new();
+    let marked: &mut HashMap<NodeName, (Link<T>, bool)> = &mut HashMap::new();
     // Sorted nodes.
     let sorted: &mut VecDeque<Link<T>> = &mut VecDeque::new();
 
@@ -157,7 +154,7 @@ where
 
 fn visit<T>(
     node: Link<T>,
-    marked: &mut HashMap<&'static str, (Link<T>, bool)>,
+    marked: &mut HashMap<NodeName, (Link<T>, bool)>,
     sorted: &mut VecDeque<Link<T>>,
 ) {
     let marked_node: Option<&(Link<T>, bool)> = marked.get(node.borrow().name);
@@ -181,6 +178,67 @@ fn visit<T>(
     marked.insert(node.borrow().name, (node.clone(), true));
     // Add node as sorted node.
     sorted.push_front(node);
+}
+
+fn dijkstra_find<T>(root: Link<T>) -> HashMap<NodeName, Weight>
+where
+    T: Clone + Eq,
+{
+    let mut processed: HashSet<NodeName> = HashSet::new();
+    let nodes: RefCell<HashMap<NodeName, Link<T>>> = RefCell::new(HashMap::new());
+    let costs: RefCell<HashMap<NodeName, Weight>> = RefCell::new(HashMap::new());
+    let parents: RefCell<HashMap<NodeName, Option<Link<T>>>> = RefCell::new(HashMap::new());
+
+    root.borrow().traverse_breadth_first(
+        &|edge| -> ActResult {
+            nodes.borrow_mut().insert(edge.0.borrow().name, edge.0.clone());
+            costs.borrow_mut().insert(edge.0.borrow().name, Weight::MAX);
+            parents.borrow_mut().insert(edge.0.borrow().name, None);
+            ActResult::Ok
+        },
+        &mut HashSet::new(),
+    );
+    costs.borrow_mut().insert(root.borrow().name, 0);
+
+    let nodes: &mut HashMap<NodeName, Link<T>> = &mut nodes.borrow_mut();
+    let costs: &mut HashMap<NodeName, Weight> = &mut costs.borrow_mut();
+    let parents: &mut HashMap<NodeName, Option<Link<T>>> = &mut parents.borrow_mut();
+
+    while let Some(closest_node_name) = find_closest_node::<NodeName>(costs, &processed) {
+        let closest_node: Link<T> = nodes.get(closest_node_name).unwrap().clone();
+        let cost = *costs.get_mut(closest_node_name).unwrap();
+        let edges = closest_node.borrow().edges.clone();
+        for edge in edges {
+            let name = edge.0.borrow().name;
+            let new_cost = cost + edge.1;
+            let old_cost = *costs.get(name).unwrap();
+            if old_cost > new_cost {
+                costs.insert(name, new_cost);
+                parents.insert(name, Some(closest_node.clone()));
+            }
+        }
+        processed.insert(closest_node.borrow().name);
+    }
+
+    costs.clone()
+}
+
+fn find_closest_node<T>(
+    costs: &HashMap<NodeName, Weight>,
+    processed: &HashSet<NodeName>,
+) -> Option<NodeName> {
+    let mut closest_weight: Weight = Weight::MAX;
+    let mut closest_node_name: NodeName = "";
+    for (k, v) in costs.iter() {
+        if *v < closest_weight && !processed.contains(k) {
+            closest_weight = *v;
+            closest_node_name = k;
+        }
+    }
+    if closest_node_name.is_empty() {
+        return None;
+    }
+    Some(closest_node_name)
 }
 
 #[cfg(test)]
@@ -215,13 +273,38 @@ mod tests {
         root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
         let sorted = depth_first_topological_sort(root);
         println!("sorted");
-        let mut nodes: Vec<&'static str> = Vec::new();
+        let mut nodes: Vec<NodeName> = Vec::new();
         for ele in sorted {
             nodes.push(ele.borrow().name);
             print!("{} ", ele.borrow().name)
         }
         println!();
         assert_eq!(nodes, vec!["R", "B", "E", "F", "A", "G", "C", "D"])
+    }
+
+    #[test]
+    fn test_dijkstra_find() {
+        let root = gen_graph();
+        println!("traverse");
+        root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
+        let costs = dijkstra_find(root);
+        println!("costs with root R");
+        for cost in costs.iter() {
+            println!("{} -> {}", cost.0, cost.1)
+        }
+        assert_eq!(
+            costs,
+            HashMap::from([
+                ("B", 9),
+                ("E", 14),
+                ("R", 0),
+                ("G", 4),
+                ("D", 11),
+                ("A", 1),
+                ("F", 22),
+                ("C", 7)
+            ])
+        )
     }
 
     fn gen_graph() -> Link<u8> {
