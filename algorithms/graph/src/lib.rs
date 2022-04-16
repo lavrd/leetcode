@@ -13,6 +13,7 @@ enum ActResult {
     Stop,
 }
 
+#[derive(Debug, PartialEq)]
 struct Node<T> {
     name: NodeName,
     data: T,
@@ -180,7 +181,9 @@ fn visit<T>(
     sorted.push_front(node);
 }
 
-fn dijkstra_find<T>(root: Link<T>) -> HashMap<NodeName, Weight>
+fn dijkstra_find<T>(
+    root: Link<T>,
+) -> (HashMap<NodeName, Weight>, HashMap<NodeName, Option<Link<T>>>)
 where
     T: Clone + Eq,
 {
@@ -220,7 +223,7 @@ where
         processed.insert(closest_node.borrow().name);
     }
 
-    costs.clone()
+    (costs.clone(), parents.clone())
 }
 
 fn find_closest_node<T>(
@@ -287,7 +290,7 @@ mod tests {
         let root = gen_graph();
         println!("traverse");
         root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
-        let costs = dijkstra_find(root);
+        let (costs, parents) = dijkstra_find(root.clone());
         println!("costs with root R");
         for cost in costs.iter() {
             println!("{} -> {}", cost.0, cost.1)
@@ -304,7 +307,27 @@ mod tests {
                 ("F", 22),
                 ("C", 7)
             ])
-        )
+        );
+        assert_eq!(*parents.get("R").unwrap(), None);
+        assert_eq!(*parents.get("A").unwrap(), Some(root.clone()));
+        root.borrow().traverse_breadth_first(
+            &|edge| -> ActResult {
+                if edge.0.borrow().name == "E" {
+                    assert_eq!(*parents.get("F").unwrap(), Some(edge.0.clone()));
+                    return ActResult::Stop;
+                }
+                ActResult::Ok
+            },
+            &mut HashSet::new(),
+        );
+
+        println!("traverse to root");
+        let mut parent: Option<Link<u8>> = None;
+        parent = Some(parents.get("G").unwrap().as_ref().unwrap().clone());
+        while let Some(p) = parent {
+            println!("{}", p.borrow().name);
+            parent = parents.get(p.borrow().name).unwrap().clone();
+        }
     }
 
     fn gen_graph() -> Link<u8> {
