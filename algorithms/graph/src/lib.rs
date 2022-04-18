@@ -21,8 +21,8 @@ struct Node<T> {
 }
 
 impl<T> Node<T>
-where
-    T: Clone,
+    where
+        T: Clone,
 {
     fn new(name: NodeName, data: T) -> Link<T> {
         Rc::new(RefCell::new(Node {
@@ -38,8 +38,8 @@ where
     }
 
     fn traverse_depth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
-    where
-        F: Fn(&Node<T>),
+        where
+            F: Fn(&Node<T>),
     {
         if seen.contains(&self.name) {
             return;
@@ -52,8 +52,8 @@ where
     }
 
     fn traverse_breadth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
-    where
-        F: Fn(&Edge<T>) -> ActResult,
+        where
+            F: Fn(&Edge<T>) -> ActResult,
     {
         let mut stack: VecDeque<Edge<T>> = VecDeque::new();
         stack.push_back((Rc::new(RefCell::new(self.into())), 0));
@@ -75,8 +75,8 @@ where
 }
 
 impl<T> From<&Node<T>> for Node<T>
-where
-    T: Clone,
+    where
+        T: Clone,
 {
     fn from(n: &Node<T>) -> Self {
         let name = n.name;
@@ -87,8 +87,8 @@ where
 }
 
 fn breadth_first_search<T>(root: Link<T>, target: &str) -> Option<T>
-where
-    T: Clone + Eq,
+    where
+        T: Clone + Eq,
 {
     let found: RefCell<Option<T>> = RefCell::new(None);
     root.borrow().traverse_breadth_first(
@@ -181,11 +181,9 @@ fn visit<T>(
     sorted.push_front(node);
 }
 
-fn dijkstra_find<T>(
-    root: Link<T>,
-) -> (HashMap<NodeName, Weight>, HashMap<NodeName, Option<Link<T>>>)
-where
-    T: Clone + Eq,
+fn dijkstra<T>(root: Link<T>) -> (HashMap<NodeName, Weight>, HashMap<NodeName, Option<Link<T>>>)
+    where
+        T: Clone + Eq,
 {
     let mut processed: HashSet<NodeName> = HashSet::new();
     let nodes: RefCell<HashMap<NodeName, Link<T>>> = RefCell::new(HashMap::new());
@@ -244,6 +242,83 @@ fn find_closest_node<T>(
     Some(closest_node_name)
 }
 
+fn bellman_ford<T>(
+    root: Link<T>,
+) -> (HashMap<NodeName, HashMap<NodeName, Weight>>, HashMap<NodeName, Option<Link<T>>>)
+    where
+        T: Clone + Eq,
+{
+    let nodes: RefCell<HashMap<NodeName, Link<T>>> = RefCell::new(HashMap::new());
+    let costs: Rc<RefCell<HashMap<NodeName, HashMap<NodeName, Weight>>>> =
+        Rc::new(RefCell::new(HashMap::new()));
+    let parents: RefCell<HashMap<NodeName, Option<Link<T>>>> = RefCell::new(HashMap::new());
+
+    root.borrow().traverse_breadth_first(
+        &|edge| -> ActResult {
+            nodes.borrow_mut().insert(edge.0.borrow().name, edge.0.clone());
+            costs.borrow_mut().insert(edge.0.borrow().name, HashMap::new());
+            parents.borrow_mut().insert(edge.0.borrow().name, None);
+            ActResult::Ok
+        },
+        &mut HashSet::new(),
+    );
+
+    for d in costs.borrow_mut().iter_mut() {
+        for n in nodes.borrow().iter() {
+            d.1.insert(n.0, Weight::MAX);
+        }
+    }
+    costs.borrow_mut().get_mut(root.borrow().name).unwrap().insert(root.borrow().name, 0);
+
+    root.borrow().traverse_breadth_first(
+        &|edge| -> ActResult {
+            let mut _costs = costs.borrow_mut();
+            let parent_name = edge.0.borrow().name;
+            let parent_costs = _costs.get_mut(parent_name).unwrap();
+            let g_parent_cost: Weight = *parent_costs.get_mut(parent_name).unwrap();
+
+            for child in edge.0.borrow().edges.iter() {
+                let child_name = child.0.borrow().name;
+                let g_child_cost: Weight = *parent_costs.get_mut(child_name).unwrap();
+
+                if g_parent_cost != Weight::MAX && g_parent_cost + edge.1 < g_child_cost {
+                    // _costs.get_mut(child_name).unwrap().insert(child_name, g_parent_cost + edge.1);
+                    // edge.0.borrow().edges
+                }
+            }
+
+            unreachable!()
+        },
+        &mut HashSet::new(),
+    );
+
+    // let mut costs = costs.borrow_mut();
+
+    // for _ in 0..nodes.len() - 1 {
+    //     for (parent_name, parent_costs) in costs.clone().iter() {
+    //         for (child_name, child_cost) in parent_costs.iter() {
+    //             let g_parent_cost: Weight =
+    //                 *costs.get_mut(parent_name).unwrap().get(parent_name).unwrap();
+    //             let g_child_cost: Weight =
+    //                 *costs.get_mut(parent_name).unwrap().get(child_name).unwrap();
+    //             if g_parent_cost != Weight::MAX && g_parent_cost + child_cost < g_child_cost {
+    //                 println!("OK");
+    //                 // TODO: Pass parent here.
+    //                 costs
+    //                     .get_mut(child_name)
+    //                     .unwrap()
+    //                     .insert(child_name, g_parent_cost + child_cost);
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // // TODO: Check negative cycles.
+    //
+    // (costs.clone(), parents.clone())
+    unreachable!()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -277,20 +352,20 @@ mod tests {
         let sorted = depth_first_topological_sort(root);
         println!("sorted");
         let mut nodes: Vec<NodeName> = Vec::new();
-        for ele in sorted {
-            nodes.push(ele.borrow().name);
-            print!("{} ", ele.borrow().name)
+        for n in sorted {
+            nodes.push(n.borrow().name);
+            print!("{} ", n.borrow().name)
         }
         println!();
         assert_eq!(nodes, vec!["R", "B", "E", "F", "A", "G", "C", "D"])
     }
 
     #[test]
-    fn test_dijkstra_find() {
+    fn test_dijkstra() {
         let root = gen_graph();
         println!("traverse");
         root.borrow().traverse_depth_first(&print_node, &mut HashSet::new());
-        let (costs, parents) = dijkstra_find(root.clone());
+        let (costs, parents) = dijkstra(root.clone());
         println!("costs with root R");
         for cost in costs.iter() {
             println!("{} -> {}", cost.0, cost.1)
@@ -322,12 +397,18 @@ mod tests {
         );
 
         println!("traverse to root");
-        let mut parent: Option<Link<u8>> = None;
-        parent = Some(parents.get("G").unwrap().as_ref().unwrap().clone());
+        let mut parent: Option<Link<u8>> = Some(parents.get("G").unwrap().as_ref().unwrap().clone());
         while let Some(p) = parent {
             println!("{}", p.borrow().name);
             parent = parents.get(p.borrow().name).unwrap().clone();
         }
+    }
+
+    #[test]
+    fn test_bellman_ford() {
+        let root = gen_graph();
+        let (costs, _parents) = bellman_ford(root);
+        println!("{:?}", costs)
     }
 
     fn gen_graph() -> Link<u8> {

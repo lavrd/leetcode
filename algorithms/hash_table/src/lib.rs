@@ -127,9 +127,6 @@ mod tests {
         hash_table.insert("jer_1", "lor_009");
         assert_eq!(hash_table.get("jer_1"), Some("lor_009"));
 
-        assert_eq!(
-            (hash_table.buckets.len(), hash_table.buckets.capacity()),
-            (10, 10)
-        );
+        assert_eq!((hash_table.buckets.len(), hash_table.buckets.capacity()), (10, 10));
     }
 }

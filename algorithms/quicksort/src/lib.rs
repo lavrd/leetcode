@@ -60,13 +60,7 @@ impl Partition for Hoare {
                     break;
                 }
             }
-            println!(
-                "stop : i={:?} j={} v[i]={} v[j]={}",
-                i,
-                j,
-                v[i.unwrap()],
-                v[j]
-            );
+            println!("stop : i={:?} j={} v[i]={} v[j]={}", i, j, v[i.unwrap()], v[j]);
             if i.unwrap() >= j {
                 println!("return");
                 return j;
@@ -249,16 +243,8 @@ mod tests {
     fn gen_cases() -> Vec<(Vec<u128>, Vec<u128>, bool)> {
         vec![
             (vec![4, 2, 0, 9, 2], vec![0, 2, 2, 4, 9], true),
-            (
-                vec![55, 8, 12, 34, 5, 7, 122, 34, 0],
-                vec![0, 5, 7, 8, 12, 34, 34, 55, 122],
-                true,
-            ),
-            (
-                vec![55, 8, 12, 5, 7, 122, 34, 0],
-                vec![122, 55, 34, 12, 8, 7, 5, 0],
-                false,
-            ),
+            (vec![55, 8, 12, 34, 5, 7, 122, 34, 0], vec![0, 5, 7, 8, 12, 34, 34, 55, 122], true),
+            (vec![55, 8, 12, 5, 7, 122, 34, 0], vec![122, 55, 34, 12, 8, 7, 5, 0], false),
         ]
     }
 }
