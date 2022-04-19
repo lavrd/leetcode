@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 type NodeName = &'static str;
-type Weight = u8;
+type Weight = i8;
 type Link<T> = Rc<RefCell<Node<T>>>;
 type Edge<T> = (Link<T>, Weight);
 
@@ -21,8 +21,8 @@ struct Node<T> {
 }
 
 impl<T> Node<T>
-    where
-        T: Clone,
+where
+    T: Clone,
 {
     fn new(name: NodeName, data: T) -> Link<T> {
         Rc::new(RefCell::new(Node {
@@ -38,8 +38,8 @@ impl<T> Node<T>
     }
 
     fn traverse_depth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
-        where
-            F: Fn(&Node<T>),
+    where
+        F: Fn(&Node<T>),
     {
         if seen.contains(&self.name) {
             return;
@@ -52,8 +52,8 @@ impl<T> Node<T>
     }
 
     fn traverse_breadth_first<F>(&self, act: &F, seen: &mut HashSet<NodeName>)
-        where
-            F: Fn(&Edge<T>) -> ActResult,
+    where
+        F: Fn(&Edge<T>) -> ActResult,
     {
         let mut stack: VecDeque<Edge<T>> = VecDeque::new();
         stack.push_back((Rc::new(RefCell::new(self.into())), 0));
@@ -75,8 +75,8 @@ impl<T> Node<T>
 }
 
 impl<T> From<&Node<T>> for Node<T>
-    where
-        T: Clone,
+where
+    T: Clone,
 {
     fn from(n: &Node<T>) -> Self {
         let name = n.name;
@@ -87,8 +87,8 @@ impl<T> From<&Node<T>> for Node<T>
 }
 
 fn breadth_first_search<T>(root: Link<T>, target: &str) -> Option<T>
-    where
-        T: Clone + Eq,
+where
+    T: Clone + Eq,
 {
     let found: RefCell<Option<T>> = RefCell::new(None);
     root.borrow().traverse_breadth_first(
@@ -182,8 +182,8 @@ fn visit<T>(
 }
 
 fn dijkstra<T>(root: Link<T>) -> (HashMap<NodeName, Weight>, HashMap<NodeName, Option<Link<T>>>)
-    where
-        T: Clone + Eq,
+where
+    T: Clone + Eq,
 {
     let mut processed: HashSet<NodeName> = HashSet::new();
     let nodes: RefCell<HashMap<NodeName, Link<T>>> = RefCell::new(HashMap::new());
@@ -242,81 +242,59 @@ fn find_closest_node<T>(
     Some(closest_node_name)
 }
 
-fn bellman_ford<T>(
-    root: Link<T>,
-) -> (HashMap<NodeName, HashMap<NodeName, Weight>>, HashMap<NodeName, Option<Link<T>>>)
-    where
-        T: Clone + Eq,
+fn bellman_ford<T>(root: Link<T>) -> (HashMap<NodeName, Weight>, HashMap<NodeName, Option<Link<T>>>)
+where
+    T: Clone + Eq,
 {
-    let nodes: RefCell<HashMap<NodeName, Link<T>>> = RefCell::new(HashMap::new());
-    let costs: Rc<RefCell<HashMap<NodeName, HashMap<NodeName, Weight>>>> =
-        Rc::new(RefCell::new(HashMap::new()));
+    let nodes_len: RefCell<usize> = RefCell::new(0);
+    let costs: Rc<RefCell<HashMap<NodeName, Weight>>> = Rc::new(RefCell::new(HashMap::new()));
     let parents: RefCell<HashMap<NodeName, Option<Link<T>>>> = RefCell::new(HashMap::new());
 
+    // Count nodes length and initialize hash maps.
     root.borrow().traverse_breadth_first(
         &|edge| -> ActResult {
-            nodes.borrow_mut().insert(edge.0.borrow().name, edge.0.clone());
-            costs.borrow_mut().insert(edge.0.borrow().name, HashMap::new());
+            *nodes_len.borrow_mut() += 1;
+            costs.borrow_mut().insert(edge.0.borrow().name, Weight::MAX);
             parents.borrow_mut().insert(edge.0.borrow().name, None);
             ActResult::Ok
         },
         &mut HashSet::new(),
     );
+    // From root to root weight is zero.
+    costs.borrow_mut().insert(root.borrow().name, 0);
 
-    for d in costs.borrow_mut().iter_mut() {
-        for n in nodes.borrow().iter() {
-            d.1.insert(n.0, Weight::MAX);
-        }
-    }
-    costs.borrow_mut().get_mut(root.borrow().name).unwrap().insert(root.borrow().name, 0);
+    for _ in 0..*nodes_len.borrow_mut() - 1 {
+        root.borrow().traverse_breadth_first(
+            &|edge| -> ActResult {
+                let parent_name = edge.0.borrow().name;
+                let mut costs_ = costs.borrow_mut();
+                let mut parents_ = parents.borrow_mut();
+                // Parent cost from storage.
+                let g_parent_cost: Weight = *costs_.get(parent_name).unwrap();
 
-    root.borrow().traverse_breadth_first(
-        &|edge| -> ActResult {
-            let mut _costs = costs.borrow_mut();
-            let parent_name = edge.0.borrow().name;
-            let parent_costs = _costs.get_mut(parent_name).unwrap();
-            let g_parent_cost: Weight = *parent_costs.get_mut(parent_name).unwrap();
+                // Check each child.
+                for child in edge.0.borrow().edges.iter() {
+                    let child_name = child.0.borrow().name;
+                    // Child cost from storage.
+                    let g_child_cost: Weight = *costs_.get(child_name).unwrap();
 
-            for child in edge.0.borrow().edges.iter() {
-                let child_name = child.0.borrow().name;
-                let g_child_cost: Weight = *parent_costs.get_mut(child_name).unwrap();
-
-                if g_parent_cost != Weight::MAX && g_parent_cost + edge.1 < g_child_cost {
-                    // _costs.get_mut(child_name).unwrap().insert(child_name, g_parent_cost + edge.1);
-                    // edge.0.borrow().edges
+                    // Sum parent cost from storage with current child weight and compare with child cost in storage.
+                    if g_parent_cost != Weight::MAX && g_parent_cost + child.1 < g_child_cost {
+                        costs_.insert(child_name, g_parent_cost + child.1);
+                        parents_.insert(child_name, Some(edge.0.clone()));
+                    }
                 }
-            }
+                ActResult::Ok
+            },
+            &mut HashSet::new(),
+        );
+    }
 
-            unreachable!()
-        },
-        &mut HashSet::new(),
-    );
+    // TODO: Check negative cycles.
 
-    // let mut costs = costs.borrow_mut();
-
-    // for _ in 0..nodes.len() - 1 {
-    //     for (parent_name, parent_costs) in costs.clone().iter() {
-    //         for (child_name, child_cost) in parent_costs.iter() {
-    //             let g_parent_cost: Weight =
-    //                 *costs.get_mut(parent_name).unwrap().get(parent_name).unwrap();
-    //             let g_child_cost: Weight =
-    //                 *costs.get_mut(parent_name).unwrap().get(child_name).unwrap();
-    //             if g_parent_cost != Weight::MAX && g_parent_cost + child_cost < g_child_cost {
-    //                 println!("OK");
-    //                 // TODO: Pass parent here.
-    //                 costs
-    //                     .get_mut(child_name)
-    //                     .unwrap()
-    //                     .insert(child_name, g_parent_cost + child_cost);
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // // TODO: Check negative cycles.
-    //
-    // (costs.clone(), parents.clone())
-    unreachable!()
+    let costs: HashMap<NodeName, Weight> = costs.borrow().clone();
+    let parents: HashMap<NodeName, Option<Link<T>>> = parents.borrow().clone();
+    (costs, parents)
 }
 
 #[cfg(test)]
@@ -397,7 +375,8 @@ mod tests {
         );
 
         println!("traverse to root");
-        let mut parent: Option<Link<u8>> = Some(parents.get("G").unwrap().as_ref().unwrap().clone());
+        let mut parent: Option<Link<u8>> =
+            Some(parents.get("G").unwrap().as_ref().unwrap().clone());
         while let Some(p) = parent {
             println!("{}", p.borrow().name);
             parent = parents.get(p.borrow().name).unwrap().clone();
@@ -406,9 +385,16 @@ mod tests {
 
     #[test]
     fn test_bellman_ford() {
-        let root = gen_graph();
-        let (costs, _parents) = bellman_ford(root);
-        println!("{:?}", costs)
+        let root = gen_bellman_graph();
+        root.borrow().traverse_breadth_first(&print_edge, &mut HashSet::new());
+        let (costs, parents) = bellman_ford(root);
+        println!("\ncosts - {:?}\n", costs);
+        for p in parents {
+            if p.1.is_none() {
+                continue;
+            }
+            println!("parent for {} is {}", p.0, p.1.unwrap().borrow().name);
+        }
     }
 
     fn gen_graph() -> Link<u8> {
@@ -427,6 +413,26 @@ mod tests {
         c.borrow_mut().add_edge(Rc::clone(&d), 7);
         e.borrow_mut().add_edge(Rc::clone(&f), 8);
         f.borrow_mut().add_edge(Rc::clone(&a), 0).add_edge(Rc::clone(&g), 4);
+
+        r
+    }
+
+    fn gen_bellman_graph() -> Link<u8> {
+        let r = Node::new("R", 0);
+        let a = Node::new("A", 1);
+        let b = Node::new("B", 2);
+        let c = Node::new("C", 3);
+        let d = Node::new("D", 4);
+        let e = Node::new("E", 5);
+        let f = Node::new("F", 6);
+        let g = Node::new("G", 7);
+
+        r.borrow_mut().add_edge(Rc::clone(&a), 1).add_edge(Rc::clone(&b), 9);
+        a.borrow_mut().add_edge(Rc::clone(&c), 6).add_edge(Rc::clone(&g), 3);
+        b.borrow_mut().add_edge(Rc::clone(&d), 2).add_edge(Rc::clone(&e), 5);
+        c.borrow_mut().add_edge(Rc::clone(&d), 7);
+        e.borrow_mut().add_edge(Rc::clone(&f), 8);
+        f.borrow_mut().add_edge(Rc::clone(&a), -100).add_edge(Rc::clone(&g), 4);
 
         r
     }
