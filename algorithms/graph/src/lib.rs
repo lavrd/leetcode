@@ -128,6 +128,7 @@ fn print_edge<T>(edge: &Edge<T>) -> ActResult {
     ActResult::Ok
 }
 
+// TODO: At the moment function can work only from graph root. Update to avoid this problem.
 fn depth_first_topological_sort<T>(root: Link<T>) -> VecDeque<Link<T>> {
     // false - marked as temporary / true - marked as permanent.
     let marked: &mut HashMap<NodeName, (Link<T>, bool)> = &mut HashMap::new();
@@ -403,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_rand() {
-        let root = gen_graph_random(5, 3);
+        let root = gen_graph_random(100, 3);
         root.borrow().traverse_breadth_first(&print_edge, &mut HashSet::new());
         let (costs, parents) = dijkstra(root.clone());
         println!("{:?}", costs);
