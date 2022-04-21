@@ -267,8 +267,8 @@ where
     // From root to root weight is zero.
     costs.borrow_mut().insert(root.borrow().name.clone(), 0);
 
+    // TODO: Is it really need?
     for _ in 0..*nodes_len.borrow_mut() - 1 {
-        // TODO: Is it really need?
         root.borrow().traverse_breadth_first(
             &|edge| -> ActResult {
                 let parent_name = edge.0.borrow().name.clone();
