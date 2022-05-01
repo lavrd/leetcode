@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use chrono::TimeZone;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -41,11 +43,37 @@ fn schedule_problem(classes: Vec<Class>) -> Vec<Class> {
     can_be_visited
 }
 
+fn set_covering_problem<'a>(
+    mut states_needed: HashSet<&'a str>,
+    stations: HashMap<&'a str, HashSet<&'a str>>,
+) -> HashSet<&'a str> {
+    let mut final_stations: HashSet<&str> = HashSet::new();
+    while !states_needed.is_empty() {
+        let mut best_station = stations.iter().next().unwrap();
+        let mut best_station_covered: HashSet<&str> =
+            best_station.1.intersection(&states_needed).cloned().collect();
+        for station in &stations {
+            let station_covered: HashSet<&str> =
+                station.1.intersection(&states_needed).cloned().collect();
+            if station_covered.len() > best_station_covered.len() {
+                best_station = station.clone();
+                best_station_covered = station_covered;
+            }
+        }
+        final_stations.insert(best_station.0.clone());
+        states_needed = states_needed.difference(&best_station_covered).cloned().collect();
+    }
+    final_stations
+}
+
 #[cfg(test)]
 mod tests {
-    use std::vec;
+    use std::{
+        collections::{HashMap, HashSet},
+        vec,
+    };
 
-    use crate::{schedule_problem, Class};
+    use crate::{schedule_problem, set_covering_problem, Class};
 
     #[test]
     fn test_schedule_problem() {
@@ -57,5 +85,24 @@ mod tests {
         let classes: Vec<Class> = Vec::from([art.clone(), eng, math.clone(), cs, music.clone()]);
         let can_be_visited = schedule_problem(classes);
         assert_eq!(can_be_visited, vec![art, math, music]);
+    }
+
+    #[test]
+    fn test_covering_problem() {
+        let states_needed: HashSet<&str> =
+            HashSet::from(["mt", "wa", "or", "id", "nv", "ut", "ca", "az"]);
+        let stations: HashMap<&str, HashSet<&str>> = HashMap::from([
+            ("kone", HashSet::from(["id", "nv", "ut"])),
+            ("ktwo", HashSet::from(["wa", "id", "mt"])),
+            ("kthree", HashSet::from(["or", "nv", "ca"])),
+            ("kfour", HashSet::from(["nv", "ut"])),
+            ("kfive", HashSet::from(["ca", "az"])),
+        ]);
+        let final_stations = set_covering_problem(states_needed, stations);
+        let diff: HashSet<_> = final_stations
+            .difference(&HashSet::from(["ktwo", "kthree", "kone", "kfive"]))
+            .cloned()
+            .collect();
+        assert_eq!(diff, HashSet::new());
     }
 }
