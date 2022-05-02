@@ -66,6 +66,70 @@ fn set_covering_problem<'a>(
     final_stations
 }
 
+fn salesperson_problem(
+    points: HashMap<String, HashMap<String, u8>>,
+    start: String,
+) -> (u8, Vec<String>) {
+    let mut max_variants: u8 = u8::MAX;
+    let mut variants: HashMap<u8, Vec<String>> = HashMap::with_capacity(max_variants as usize);
+    // TODO: Add a comment.
+    let mut visited: HashMap<String, HashSet<String>> = HashMap::with_capacity(points.len());
+
+    while max_variants != 0 {
+        let mut cur_distance: u8 = 0;
+        let mut cur_path: Vec<String> = Vec::with_capacity(points.len());
+        let mut cur_visited: HashSet<String> = HashSet::with_capacity(points.len());
+
+        let mut cur_point_name = start.clone();
+        let mut cur_point = points.get(&cur_point_name).unwrap();
+        cur_path.push(start.clone());
+
+        while cur_visited.len() != points.len() {
+            let _empty_str: &String = &"".to_string();
+            let closest_point: (&String, &u8) =
+                cur_point.iter().fold((_empty_str, &u8::MAX), |closest, cur| {
+                    if cur.1 < &closest.1 {
+                        if !cur_visited.contains(cur.0) {
+                            if visited.get(&cur_point_name).is_some() {
+                                if visited.get(&cur_point_name).unwrap().contains(cur.0) {
+                                    return closest;
+                                }
+                            }
+                            return cur.clone();
+                        }
+                    }
+                    closest
+                });
+            if closest_point.0.is_empty() {
+                break;
+            }
+
+            if visited.get_mut(&cur_point_name).is_none() {
+                visited.insert(cur_point_name.clone(), HashSet::from([closest_point.0.clone()]));
+            } else {
+                visited.get_mut(&cur_point_name).unwrap().insert(closest_point.0.clone());
+            }
+
+            cur_distance += closest_point.1;
+            cur_point_name = closest_point.0.clone();
+            cur_path.push(cur_point_name.clone());
+            cur_visited.insert(cur_point_name.clone());
+            cur_point = points.get(&cur_point_name).unwrap();
+        }
+
+        variants.insert(cur_distance, cur_path);
+        max_variants -= 1;
+    }
+
+    let mut path: (u8, Vec<String>) = (u8::MAX, Vec::new());
+    for v in &variants {
+        if v.1.len() >= points.len() && v.0 < &path.0 {
+            path = (*v.0, v.1.clone())
+        }
+    }
+    path
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -73,7 +137,7 @@ mod tests {
         vec,
     };
 
-    use crate::{schedule_problem, set_covering_problem, Class};
+    use crate::{salesperson_problem, schedule_problem, set_covering_problem, Class};
 
     #[test]
     fn test_schedule_problem() {
@@ -104,5 +168,63 @@ mod tests {
             .cloned()
             .collect();
         assert_eq!(diff, HashSet::new());
+    }
+
+    #[test]
+    fn test_salesperson_problem() {
+        let points: HashMap<String, HashMap<String, u8>> = HashMap::from([
+            (
+                "A".to_string(),
+                HashMap::from([
+                    ("A".to_string(), 0),
+                    ("B".to_string(), 1),
+                    ("C".to_string(), 2),
+                    ("D".to_string(), 5),
+                    ("E".to_string(), 3),
+                ]),
+            ),
+            (
+                "B".to_string(),
+                HashMap::from([
+                    ("A".to_string(), 6),
+                    ("B".to_string(), 0),
+                    ("C".to_string(), 8),
+                    ("D".to_string(), 3),
+                    ("E".to_string(), 9),
+                ]),
+            ),
+            (
+                "C".to_string(),
+                HashMap::from([
+                    ("A".to_string(), 3),
+                    ("B".to_string(), 1),
+                    ("C".to_string(), 0),
+                    ("D".to_string(), 1),
+                    ("E".to_string(), 1),
+                ]),
+            ),
+            (
+                "D".to_string(),
+                HashMap::from([
+                    ("A".to_string(), 4),
+                    ("B".to_string(), 9),
+                    ("C".to_string(), 4),
+                    ("D".to_string(), 0),
+                    ("E".to_string(), 4),
+                ]),
+            ),
+            (
+                "E".to_string(),
+                HashMap::from([
+                    ("A".to_string(), 5),
+                    ("B".to_string(), 4),
+                    ("C".to_string(), 8),
+                    ("D".to_string(), 6),
+                    ("E".to_string(), 4),
+                ]),
+            ),
+        ]);
+        let path = salesperson_problem(points, "A".to_string());
+        println!("{:?}", path)
     }
 }
