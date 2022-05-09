@@ -9,6 +9,7 @@ members = [
   "algorithms/hash_table",
   "algorithms/graph",
   "algorithms/greedy",
+  "algorithms/dynamic",
   # Problems.
   "problems/n_125_valid_palindrome",
   "problems/n_9_palindrome_number",
