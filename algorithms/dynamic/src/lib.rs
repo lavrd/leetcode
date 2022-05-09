@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, cmp::max, collections::HashMap};
 
 type Weight = i128;
 type Price = i128;
@@ -83,11 +83,82 @@ fn run_knapsack_problem(
     (items, price)
 }
 
+fn longest_common_substring(target: String, variants: Vec<String>) -> Vec<(String, i128)> {
+    let mut calc_variants: Vec<(String, i128)> = Vec::new();
+    let length: usize = target.len();
+
+    for variant in variants {
+        let mut cells: Vec<Vec<i128>> = Vec::with_capacity(variant.len());
+
+        // Initialize variants.
+        for i in 0..cells.capacity() {
+            cells.push(Vec::with_capacity(length));
+            for _ in 0..cells[i].capacity() {
+                cells[i].push(0)
+            }
+        }
+
+        let mut i: usize = 0;
+        loop {
+            let mut j: usize = 0;
+
+            loop {
+                let char_left = target.chars().nth(i).unwrap();
+                let char_right = variant.chars().nth(j).unwrap();
+
+                if char_left == char_right {
+                    let prev = if i.checked_sub(1).is_none() || j.checked_sub(1).is_none() {
+                        0
+                    } else {
+                        cells[i - 1][j - 1]
+                    };
+                    cells[i][j] = prev + 1
+                } else {
+                    let left = if i.checked_sub(1).is_none() {
+                        0
+                    } else {
+                        cells[i - 1][j]
+                    };
+                    let right = if j.checked_sub(1).is_none() {
+                        0
+                    } else {
+                        cells[i][j - 1]
+                    };
+                    cells[i][j] = max(left, right)
+                }
+
+                j += 1;
+                if j == length {
+                    break;
+                }
+            }
+
+            i += 1;
+            if i == length {
+                break;
+            }
+        }
+
+        calc_variants.push((variant, cells[length - 1][length - 1]));
+    }
+
+    calc_variants
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::RefCell, collections::HashMap};
 
-    use crate::{run_knapsack_problem, Cell, Item, Weight};
+    use crate::{longest_common_substring, run_knapsack_problem, Cell, Item, Weight};
+
+    #[test]
+    fn test_lcs() {
+        let variants = longest_common_substring(
+            "fog".to_string(),
+            vec!["fish".to_string(), "fort".to_string()],
+        );
+        println!("{:?}", variants);
+    }
 
     #[test]
     fn test_knapsack() {
