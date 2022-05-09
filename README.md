@@ -9,6 +9,7 @@
 
 [QuickSort](algorithms/quicksort)\
 [Graph](algorithms/graph)\
+[Dynamic Programming](algorithms/dynamic/)\
 [Hash Table](algorithms/hash_table)\
 [Binary Search](algorithms/binary_search)\
 [Greedy](algorithms/greedy)\
