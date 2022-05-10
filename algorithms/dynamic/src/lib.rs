@@ -15,6 +15,7 @@ struct Cell {
     items: Vec<String>,
 }
 
+// TODO: Knapsack object isn't need. We need to store only current and previous lines to archive goal.
 fn run_knapsack_problem(
     knapsack: HashMap<String, HashMap<Weight, RefCell<Cell>>>,
     items: HashMap<String, Item>,
@@ -52,7 +53,7 @@ fn run_knapsack_problem(
                 };
                 continue;
             }
-            // // If cell fit whole item and there is space for another item.
+            // If cell fit whole item and there is space for another item.
             if cur_weight >= &item.weight && space_left > 0 {
                 if let Some(prev_cells) = prev_cells {
                     let free_space_cell = prev_cells.get(&space_left).unwrap();
